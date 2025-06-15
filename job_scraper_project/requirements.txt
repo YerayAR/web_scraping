@@ -1,0 +1,7 @@
+selenium
+beautifulsoup4
+pandas
+openpyxl
+requests
+pyinstaller
+# Tkinter is part of the standard library, so no need to list it here.

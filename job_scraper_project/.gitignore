@@ -1,0 +1,11 @@
+*.pyc
+__pycache__/
+*.so
+*.log
+*.exe
+dist/
+build/
+.venv/
+venv/
+env/
+job_listings.xlsx # To avoid committing example output
