@@ -28,6 +28,8 @@ job_scraper_project/
 - **`scraper.py`**: contiene todas las funciones de scraping específicas para cada sitio web. Implementa la inicialización del WebDriver y la lógica para LinkedIn Jobs, Indeed, Internshala y publicaciones de LinkedIn.
 - **`excel_handler.py`**: utilitario para convertir la lista de resultados en un `DataFrame` y exportarlo a un archivo `.xlsx`.
 - **`requirements.txt`**: dependencias del proyecto.
+- **`ai_utils.py`**: funciones opcionales que usan la API de OpenAI para
+  interpretar texto libre, clasificar y traducir datos extraídos.
 
 ## Diagrama de interconexión
 
@@ -38,3 +40,11 @@ job_scraper_project/
              [scraper.py] <-----> [excel_handler.py]
 ```
 `main.py` crea el WebDriver y la GUI. La GUI llama a las funciones de `scraper.py` para obtener los datos y luego utiliza `excel_handler.py` para guardarlos en Excel.
+
+## Integración con OpenAI
+
+El módulo `ai_utils.py` permite usar la API de ChatGPT para analizar páginas con
+estructura poco clara, identificar campos relevantes y traducir o normalizar los
+resultados. Para activarlo es necesario instalar la dependencia `openai` y
+configurar la variable de entorno `OPENAI_API_KEY`. Si no se provee esta clave,
+la aplicación seguirá funcionando pero sin las capacidades de IA.

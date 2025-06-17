@@ -4,4 +4,6 @@ pandas
 openpyxl
 requests
 pyinstaller
+# Optional: Use OpenAI API for advanced data processing
+openai
 # Tkinter is part of the standard library, so no need to list it here.

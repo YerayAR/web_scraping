@@ -65,5 +65,14 @@ This project was developed in a restricted cloud environment, which led to sever
 - The `excel_handler.py` module for saving data to Excel was tested and functions correctly.
 - The application is structured to run scraping tasks in a separate thread to keep the GUI responsive (this aspect is untested due to the Tkinter issue).
 
+## Optional OpenAI Integration
+
+The project includes helper functions that interface with the OpenAI ChatGPT
+API. They can extract fields from unstructured text, classify the content and
+translate or normalise scraped data. To make use of these capabilities install
+the `openai` package and set the `OPENAI_API_KEY` environment variable. The
+scrapers will continue to run without this key, but AI-powered processing will
+be disabled.
+
 ---
 This `README.md` provides a summary. For detailed code, please refer to the respective `.py` files.
