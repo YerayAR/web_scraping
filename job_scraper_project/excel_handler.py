@@ -1,20 +1,32 @@
+"""Utility for exporting scraped job entries to Excel files.
+
+This module uses :mod:`pandas` to create a DataFrame from the list of
+scraped job dictionaries and persists it to an ``.xlsx`` file.  It is
+kept separate from the scraping logic so the data layer can be tested
+independently of any web dependencies.
+"""
+
 import pandas as pd
 
 def save_jobs_to_excel(all_jobs_data, filename="job_listings.xlsx"):
-    """
-    Saves a list of job data (list of dictionaries) to an Excel file.
+    """Persist the scraped job information to an Excel spreadsheet.
 
-    Args:
-        all_jobs_data (list): A list of dictionaries, where each dictionary
-                              represents a job and contains keys like 'Designación',
-                              'Nombre de la empresa', etc.
-        filename (str): The name of the Excel file to save.
+    Parameters
+    ----------
+    all_jobs_data : list of dict
+        Collection of job entries produced by the scraping functions.  Each
+        dictionary should contain keys such as ``Designación`` and
+        ``Nombre de la empresa``.
+    filename : str, optional
+        Desired output filename.  Defaults to ``job_listings.xlsx``.
     """
     if not all_jobs_data:
         print("No job data to save.")
         return False
 
     try:
+        # Convert list of dictionaries to a DataFrame so it can easily be
+        # manipulated and exported by ``pandas``
         df = pd.DataFrame(all_jobs_data)
 
         # Define the required columns in order
@@ -31,9 +43,13 @@ def save_jobs_to_excel(all_jobs_data, filename="job_listings.xlsx"):
         # (though scraper should provide them, even if empty for Email/Teléfono)
         for col in required_columns:
             if col not in df.columns:
-                df[col] = "" # Or pd.NA or None, depending on desired Excel output for missing
+                # Create empty columns for any missing fields to keep a
+                # consistent Excel structure even when some data points are
+                # not scraped
+                df[col] = ""
 
         # Add "Número Sr" column (1-based index)
+        # Insert a running index column so Excel has a simple serial number
         df.insert(0, "Número Sr", range(1, len(df) + 1))
 
         # Reorder DataFrame to match specified headers exactly, including "Número Sr"
@@ -44,15 +60,20 @@ def save_jobs_to_excel(all_jobs_data, filename="job_listings.xlsx"):
             "Ciudad",
             "Email",
             "Teléfono",
-            "URL de la oferta"
+            "URL de la oferta",
         ]
+        # Reorder DataFrame explicitly so the Excel output columns are
+        # predictable regardless of the order in which fields were scraped
         df = df[final_columns_order]
 
+        # Use openpyxl engine for Excel output since it supports modern xlsx
         df.to_excel(filename, index=False, engine='openpyxl')
         print(f"Data successfully saved to {filename}")
         return True
 
     except Exception as e:
+        # Any failure at this point is logged and ``False`` returned so the
+        # calling GUI can react appropriately (e.g. show an error dialog)
         print(f"Error saving data to Excel: {e}")
         return False
 
