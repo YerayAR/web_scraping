@@ -12,6 +12,22 @@ import time
 import requests
 from urllib.parse import quote_plus # Added for URL encoding
 
+# Optional AI helpers for advanced text interpretation
+try:
+    from .ai_utils import (
+        extract_fields_from_text,
+        classify_content,
+        translate_text,
+        generalise_selector,
+        normalise_date,
+    )
+except Exception:
+    extract_fields_from_text = None  # type: ignore
+    classify_content = None  # type: ignore
+    translate_text = None  # type: ignore
+    generalise_selector = None  # type: ignore
+    normalise_date = None  # type: ignore
+
 def initialize_driver(webdriver_path: str = 'chromedriver'):
     """Create and configure the Selenium WebDriver instance."""
     options = ChromeOptions()
@@ -365,6 +381,45 @@ def scrape_linkedin_posts(driver, designation, city):
 
     print(f"Finished scraping LinkedIn Posts (basic). Found {len(job_data)} potential items.")
     return job_data
+
+
+def scrape_with_ai(driver, url, *, target_language: str = "English"):
+    """Scrape an arbitrary page and analyse its contents using OpenAI.
+
+    This helper is intended for pages that do not have consistent HTML
+    structure.  It retrieves the full text of the page and asks the AI model to
+    identify useful fields such as price, name, category or dates.  If the
+    ``target_language`` differs from the page language the fields are translated
+    as well.
+    """
+
+    driver.get(url)
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    text_content = soup.get_text(separator="\n", strip=True)
+
+    result = {}
+
+    if extract_fields_from_text:
+        try:
+            result = extract_fields_from_text(text_content)
+        except Exception as e:  # noqa: BLE001
+            print(f"AI extraction failed: {e}")
+
+    if classify_content:
+        try:
+            result["classification"] = classify_content(text_content)
+        except Exception as e:  # noqa: BLE001
+            print(f"AI classification failed: {e}")
+
+    if target_language and translate_text:
+        for key, value in list(result.items()):
+            if isinstance(value, str) and value:
+                try:
+                    result[key] = translate_text(value, target_language=target_language)
+                except Exception as e:  # noqa: BLE001
+                    print(f"Translation failed for {key}: {e}")
+
+    return result
 
 # Example usage (for testing scraper.py directly)
 if __name__ == '__main__':
