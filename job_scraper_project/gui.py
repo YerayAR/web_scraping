@@ -1,3 +1,12 @@
+"""Graphical interface for running the scraping workflow.
+
+This module defines :class:`JobScraperApp` which uses ``tkinter`` to gather
+the search criteria from the user and orchestrates the scraping functions
+in a background thread.  The GUI is intentionally kept simple so that the
+data extraction logic remains in :mod:`scraper` and the persistence logic
+in :mod:`excel_handler`.
+"""
+
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font as tkFont
@@ -20,20 +29,24 @@ except ImportError: # Fallback for running gui.py directly for testing (if tkint
 
 
 class JobScraperApp:
-    def __init__(self, root, driver): # Accept driver instance
+    """Tkinter window that orchestrates the scraping pipeline."""
+    def __init__(self, root, driver):
+        """Create the window widgets and keep a reference to the WebDriver."""
         self.root = root
-        self.driver = driver # Store the driver
+        self.driver = driver
         root.title("Job Scraper Tool")
         root.geometry("550x350") # Slightly wider for messages
 
         default_font = tkFont.nametofont("TkDefaultFont")
         default_font.configure(size=11)
+        # Apply a slightly larger default font for readability
         self.root.option_add("*Font", default_font)
 
         title_font = tkFont.Font(family="Helvetica", size=16, weight="bold")
         status_font = tkFont.Font(family="Helvetica", size=10)
         button_font = tkFont.Font(family="Helvetica", size=12, weight="bold")
 
+        # Container frame for all controls
         main_frame = ttk.Frame(root, padding="20 20 20 20")
         main_frame.pack(expand=True, fill=tk.BOTH)
 
@@ -55,41 +68,55 @@ class JobScraperApp:
 
         form_frame.columnconfigure(1, weight=1)
 
-        self.search_button = ttk.Button(main_frame, text="Buscar", command=self.trigger_search_thread, style="Accent.TButton")
+        # Primary action button
+        self.search_button = ttk.Button(
+            main_frame, text="Buscar", command=self.trigger_search_thread, style="Accent.TButton"
+        )
         self.search_button.pack(pady=20, ipadx=10, ipady=5)
 
         self.status_var = tk.StringVar()
         self.status_var.set("Ingrese los criterios y presione 'Buscar'.")
-        status_label = ttk.Label(main_frame, textvariable=self.status_var, wraplength=500, font=status_font, justify=tk.CENTER)
+        # Displays progress messages beneath the button
+        status_label = ttk.Label(
+            main_frame, textvariable=self.status_var, wraplength=500, font=status_font, justify=tk.CENTER
+        )
         status_label.pack(pady=(10, 0), fill=tk.X)
 
         style = ttk.Style()
         style.configure("Accent.TButton", font=button_font) # Removed background/foreground for broader compatibility
 
         # Handle window close event
+        # Intercept window close to ensure the WebDriver shuts down cleanly
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def trigger_search_thread(self):
-        # Run the actual search in a separate thread to keep GUI responsive
+        """Spawn ``start_search`` on a daemon thread."""
+        # Running the web scrapers can block for a long time; doing it
+        # on a background thread keeps the Tk event loop responsive.
         self.search_thread = threading.Thread(target=self.start_search, daemon=True)
         self.search_thread.start()
 
     def start_search(self):
+        """Collect user input and execute all scraper functions."""
         designation = self.designation_entry.get()
         city = self.city_entry.get()
 
+        # Basic validation of the input fields
         if not designation or not city:
             self.status_var.set("Error: Designación y Ciudad son campos requeridos.")
             messagebox.showerror("Error de Entrada", "Designación y Ciudad son campos requeridos.")
             return
 
+        # Ensure WebDriver was created successfully
         if not self.driver:
             self.status_var.set("Error: WebDriver no inicializado.")
             messagebox.showerror("Error del WebDriver", "El WebDriver no se pudo inicializar. La aplicación podría necesitar reiniciarse.")
             return
 
+        # Disable the button while scraping is in progress
         self.search_button.config(state=tk.DISABLED)
         self.status_var.set(f"Buscando: {designation} en {city}...")
+        # Aggregate results from all sites here
         all_jobs_data = []
 
         try:
@@ -117,7 +144,8 @@ class JobScraperApp:
             if all_jobs_data:
                 self.status_var.set(f"Guardando {len(all_jobs_data)} ofertas en Excel...")
 
-                # Generate filename with timestamp
+                # Generate filename with timestamp so multiple runs do not
+                # overwrite previous results
                 current_time_str = time.strftime("%Y%m%d-%H%M%S")
                 safe_designation = quote_plus(designation.replace(" ", "_"))
                 safe_city = quote_plus(city.replace(" ", "_"))
@@ -130,28 +158,34 @@ class JobScraperApp:
                     self.status_var.set("Error al guardar el archivo Excel.")
                     messagebox.showerror("Error de Archivo", "No se pudo guardar el archivo Excel.")
             else:
+                # Inform the user if nothing matched their search
                 self.status_var.set("No se encontraron ofertas para los criterios dados.")
                 messagebox.showinfo("Sin Resultados", "No se encontraron ofertas para los criterios especificados.")
 
         except Exception as e:
+            # Bubble up any unexpected exception so the user is aware
             self.status_var.set(f"Error durante el proceso de scraping: {e}")
             messagebox.showerror("Error de Scraping", f"Ocurrió un error: {e}")
         finally:
+            # Always re-enable the search button
             self.search_button.config(state=tk.NORMAL)
 
     def on_closing(self):
+        """Handle the window close event and ensure resources are freed."""
         if messagebox.askokcancel("Salir", "¿Desea salir de la aplicación?"):
             if self.driver:
                 print("Cerrando WebDriver...")
                 try:
                     self.driver.quit()
                 except Exception as e:
-                    print(f"Error al cerrar WebDriver: {e}") # Log error if quit fails
+                    # Log any issue encountered while shutting down the browser
+                    print(f"Error al cerrar WebDriver: {e}")
             self.root.destroy()
 
 if __name__ == '__main__':
-    # This is primarily for testing the GUI layout if tkinter is available.
-    # The main execution should be through main.py which handles driver initialization.
+    # Allow running this module directly for a quick layout check. The
+    # full application should be started via ``main.py`` so the
+    # WebDriver is properly initialised.
     print("Ejecutando gui.py directamente. WebDriver no será funcional aquí.")
     print("Para la funcionalidad completa, ejecute main.py.")
 

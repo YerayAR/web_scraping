@@ -1,3 +1,5 @@
+"""Collection of web scraping utilities for job sites."""
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -10,7 +12,8 @@ import time
 import requests
 from urllib.parse import quote_plus # Added for URL encoding
 
-def initialize_driver(webdriver_path='chromedriver'): # Or allow path to be passed
+def initialize_driver(webdriver_path: str = 'chromedriver'):
+    """Create and configure the Selenium WebDriver instance."""
     options = ChromeOptions()
     # options.add_argument("--headless") # Uncomment for headless browsing
     options.add_argument("--disable-gpu")
@@ -25,6 +28,8 @@ def initialize_driver(webdriver_path='chromedriver'): # Or allow path to be pass
         # service = ChromeService(executable_path=webdriver_path)
         # driver = webdriver.Chrome(service=service, options=options)
         # For simplicity if chromedriver is in PATH or using WebDriverManager later:
+        # Use the default chromedriver from PATH. In a real deployment the path
+        # could be parameterised or managed by WebDriverManager.
         driver = webdriver.Chrome(options=options)
         print("WebDriver initialized successfully.")
         return driver
@@ -34,6 +39,7 @@ def initialize_driver(webdriver_path='chromedriver'): # Or allow path to be pass
         return None
 
 def scrape_linkedin_jobs(driver, designation, city):
+    """Scrape job listings from LinkedIn's public job board."""
     print(f"Scraping LinkedIn Jobs for: {designation} in {city}")
     job_data = []
 
@@ -50,7 +56,7 @@ def scrape_linkedin_jobs(driver, designation, city):
         print("Job results list found.")
 
         # Scroll to load more jobs
-        for _ in range(3): # Scroll 3 times
+        for _ in range(3):  # Scroll a few times to trigger lazy loading
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(3)
             print("Scrolled down.")
@@ -96,6 +102,7 @@ def scrape_linkedin_jobs(driver, designation, city):
     return job_data
 
 def scrape_indeed(driver, designation, city):
+    """Scrape job results from Indeed using requests with a fallback to Selenium."""
     print(f"Scraping Indeed for: {designation} in {city}")
     job_data = []
     search_url = f"https://www.indeed.com/jobs?q={quote_plus(designation)}&l={quote_plus(city)}"
@@ -202,6 +209,7 @@ def scrape_indeed(driver, designation, city):
     return job_data
 
 def scrape_internshala(driver, designation, city):
+    """Scrape internship opportunities from Internshala."""
     print(f"Scraping Internshala for: {designation} in {city}")
     job_data = []
 
@@ -286,6 +294,7 @@ def scrape_internshala(driver, designation, city):
     return job_data
 
 def scrape_linkedin_posts(driver, designation, city):
+    """Very lightweight scraping of public LinkedIn posts mentioning the role."""
     print(f"Scraping LinkedIn Posts for: {designation} in {city} (Basic Attempt)")
     job_data = []
 
@@ -404,5 +413,4 @@ if __name__ == '__main__':
     #         test_driver.quit()
     # else:
     #     print("Failed to initialize WebDriver. Cannot run tests.")
-    pass # Keep the if __name__ == '__main__': block for potential future direct testing
-```
+    pass  # Keep the if __name__ == '__main__': block for potential future direct testing

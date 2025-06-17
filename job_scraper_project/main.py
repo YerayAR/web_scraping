@@ -1,3 +1,10 @@
+"""Application entry point.
+
+This script initialises the Selenium WebDriver and launches the
+``JobScraperApp`` Tkinter GUI.  The WebDriver setup is performed here so
+that the GUI module stays focused on presentation logic.
+"""
+
 import tkinter as tk
 from tkinter import messagebox # Added for main's error display
 import time # For Xvfb startup delay if used
@@ -19,9 +26,12 @@ except ImportError as e:
 
 
 def main():
-    driver = None  # Initialize driver to None
+    """Entry point executed when running as a script."""
+    driver = None  # WebDriver instance used by the GUI
     # Check for DISPLAY environment variable for Tkinter, especially in headless environments
     if not os.environ.get('DISPLAY'):
+        # Tkinter requires an X server.  Attempt to spawn Xvfb when running in
+        # a headless environment so the GUI can still start.
         print("ADVERTENCIA: La variable de entorno DISPLAY no está configurada.")
         print("Si está en un entorno sin cabeza, la GUI puede fallar al iniciarse sin un servidor X virtual como Xvfb.")
         # Attempt to start Xvfb if it seems like a headless environment (very basic check)
@@ -73,7 +83,8 @@ def main():
         # This finally block is a fallback if GUI didn't start or crashed before on_closing.
         if driver:
             try:
-                # Check if driver session is still active. Accessing window_handles will error if quit.
+                # Accessing ``window_handles`` throws if the driver has already
+                # been quit.  This allows us to detect leftover sessions.
                 _ = driver.window_handles
                 print("WebDriver todavía está activo después de que mainloop terminó o falló. Cerrando ahora.")
                 driver.quit()
@@ -83,4 +94,5 @@ def main():
         print("Aplicación finalizada.")
 
 if __name__ == '__main__':
+    # Launch the GUI when executed directly
     main()
